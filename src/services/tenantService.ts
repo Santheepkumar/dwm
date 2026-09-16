@@ -202,11 +202,65 @@ export const tenantService = {
     member: {
       userName: string;
       userEmail: string;
+      password?: string;
       role: UserRole;
       department?: string;
       designation?: string;
     }
   ): Promise<Membership> {
+    const config = getAppwriteConfig();
+
+    // 1. Attempt 1-step server provisioning (creates Appwrite Auth User + Membership)
+    try {
+      const res = await fetch('/api/members/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantId,
+          userName: member.userName,
+          userEmail: member.userEmail,
+          password: member.password,
+          role: member.role,
+          department: member.department,
+          designation: member.designation,
+          endpoint: config.endpoint,
+          projectId: config.projectId,
+          databaseId: config.databaseId,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.membership) {
+          const newMembership: Membership = {
+            id: data.membership.id || data.membership.$id,
+            $id: data.membership.$id,
+            tenantId: data.membership.tenantId || tenantId,
+            userId: data.membership.userId,
+            userName: data.membership.userName,
+            userEmail: data.membership.userEmail,
+            role: data.membership.role,
+            department: data.membership.department || member.department || 'Operations',
+            designation: data.membership.designation || member.designation || 'Specialist',
+            isActive: true,
+            createdAt: data.membership.$createdAt || data.membership.createdAt || new Date().toISOString(),
+            updatedAt: data.membership.$updatedAt || data.membership.updatedAt || new Date().toISOString(),
+          };
+
+          const all = getLocalMembers();
+          const filtered = all.filter((m) => m.id !== newMembership.id && m.userEmail !== newMembership.userEmail);
+          saveLocalMembers([...filtered, newMembership]);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('dwm_members_changed', { detail: { tenantId } }));
+          }
+          return newMembership;
+        }
+      }
+    } catch (apiErr) {
+      console.warn('API /api/members/create-user error, falling back to direct DB or local:', apiErr);
+    }
+
+    // 2. Fallback: Direct Database creation or Local Storage
     const now = new Date().toISOString();
     const newMembership: Membership = {
       id: `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -222,7 +276,6 @@ export const tenantService = {
       updatedAt: now,
     };
 
-    const config = getAppwriteConfig();
     if (config.isConfigured) {
       try {
         const db = getDatabases();
@@ -244,7 +297,7 @@ export const tenantService = {
         newMembership.$id = doc.$id;
         newMembership.id = doc.$id;
       } catch (err) {
-        console.warn('Appwrite addMember failed, saving locally', err);
+        console.warn('Appwrite addMember fallback failed, saving locally', err);
       }
     }
 

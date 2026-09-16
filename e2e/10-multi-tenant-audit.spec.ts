@@ -69,13 +69,18 @@ test.describe('Feature 10: Multi-Tenant Architecture, RBAC & State Transitions A
     await expect(addMemberToggle).toBeVisible();
     await addMemberToggle.click();
 
-    // Fill new member details
+    // Fill new member details with initial login password
     await page.getByTestId('member-name-input').fill('Ananya Sen');
     await page.getByTestId('member-email-input').fill('ananya@acmecorp.com');
     await page.getByTestId('member-role-select').selectOption('manager');
+    await page.getByTestId('member-password-input').fill('Manager2026!');
 
-    // Submit new member
+    // Submit new member & create account
     await page.getByTestId('submit-member-btn').click();
+
+    // Verify success banner with credentials
+    await expect(page.getByTestId('member-credentials-notice')).toBeVisible();
+    await expect(page.getByTestId('member-credentials-notice')).toContainText('Manager2026!');
 
     // Verify new member appears in the list with manager role
     await expect(page.getByTestId('member-row-ananya@acmecorp.com')).toBeVisible();

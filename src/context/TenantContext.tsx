@@ -19,6 +19,7 @@ interface TenantContextType {
   addMember: (memberData: {
     userName: string;
     userEmail: string;
+    password?: string;
     role: UserRole;
     department?: string;
     designation?: string;
@@ -113,6 +114,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const addMember = async (memberData: {
     userName: string;
     userEmail: string;
+    password?: string;
     role: UserRole;
     department?: string;
     designation?: string;

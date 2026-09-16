@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Users, UserPlus, Trash2, Shield, Briefcase, Mail, Building } from 'lucide-react';
+import { X, Users, UserPlus, Trash2, Shield, Briefcase, Mail, Building, Key, Eye, EyeOff, Sparkles, CheckCircle2, Copy } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 import { useTenant } from '@/context/TenantContext';
 
@@ -16,13 +16,26 @@ export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({ isOpen, 
   const [isAdding, setIsAdding] = useState(false);
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<UserRole>('member');
   const [department, setDepartment] = useState('Operations');
   const [designation, setDesignation] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successNotice, setSuccessNotice] = useState<{ email: string; pass: string; name: string; role: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleGeneratePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+    let generated = 'Dwm!';
+    for (let i = 0; i < 8; i++) {
+      generated += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setPassword(generated);
+  };
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,18 +44,34 @@ export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({ isOpen, 
       return;
     }
 
+    if (password && password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError(null);
+      const usedPassword = password || `Dwm${Math.floor(100000 + Math.random() * 900000)}!`;
       await addMember({
         userName: userName.trim(),
         userEmail: userEmail.trim().toLowerCase(),
+        password: usedPassword,
         role,
         department: department.trim() || 'Operations',
         designation: designation.trim() || 'Team Member',
       });
+
+      setSuccessNotice({
+        email: userEmail.trim().toLowerCase(),
+        pass: usedPassword,
+        name: userName.trim(),
+        role,
+      });
+
       setUserName('');
       setUserEmail('');
+      setPassword('');
       setRole('member');
       setDepartment('Operations');
       setDesignation('');
@@ -52,6 +81,15 @@ export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({ isOpen, 
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const copyCredentials = () => {
+    if (!successNotice) return;
+    navigator.clipboard.writeText(
+      `DWM Login Credentials:\nEmail: ${successNotice.email}\nPassword: ${successNotice.pass}\nURL: ${window.location.origin}/login`
+    );
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
   };
 
   const getRoleBadge = (memberRole: string) => {
@@ -193,6 +231,45 @@ export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({ isOpen, 
                     className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs focus:border-indigo-500 focus:outline-hidden"
                   />
                 </div>
+
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 flex items-center gap-1">
+                      <Key className="h-3 w-3 text-indigo-600" />
+                      <span>Initial Login Password</span>
+                      <span className="text-[10px] text-slate-400 font-normal">(optional, min 8 chars)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleGeneratePassword}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      <span>Generate</span>
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter password or leave blank to auto-generate"
+                      minLength={8}
+                      className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 pr-9 text-xs focus:border-indigo-500 focus:outline-hidden font-mono"
+                      data-testid="member-password-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    ⚡ Automated 1-Step Provisioning: Creates both an Appwrite Auth account and tenant membership.
+                  </p>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-1">
@@ -209,10 +286,46 @@ export const ManageMembersModal: React.FC<ManageMembersModalProps> = ({ isOpen, 
                   className="rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 disabled:opacity-50"
                   data-testid="submit-member-btn"
                 >
-                  {submitting ? 'Adding...' : 'Add Member'}
+                  {submitting ? 'Creating Account...' : 'Add Member & Create Account'}
                 </button>
               </div>
             </form>
+          )}
+
+          {/* Success Credentials Banner */}
+          {successNotice && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-3.5 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200" data-testid="member-credentials-notice">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span>Account & Membership Created Successfully!</span>
+                </div>
+                <button
+                  onClick={() => setSuccessNotice(null)}
+                  className="text-emerald-700 hover:text-emerald-900 p-0.5 rounded-md"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="bg-white/80 rounded-lg p-2.5 border border-emerald-200/60 flex items-center justify-between text-xs">
+                <div className="space-y-0.5 font-mono text-[11px]">
+                  <div><span className="text-slate-500 font-sans">User:</span> <strong className="text-slate-800">{successNotice.name}</strong> ({successNotice.role})</div>
+                  <div><span className="text-slate-500 font-sans">Email:</span> <strong className="text-slate-900">{successNotice.email}</strong></div>
+                  <div><span className="text-slate-500 font-sans">Password:</span> <strong className="text-indigo-700">{successNotice.pass}</strong></div>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyCredentials}
+                  className="flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-700 transition-colors shadow-2xs cursor-pointer shrink-0"
+                >
+                  <Copy className="h-3 w-3" />
+                  <span>{copied ? 'Copied!' : 'Copy Credentials'}</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-emerald-800">
+                Share these credentials with the team member so they can immediately sign in at <code className="font-mono bg-emerald-100 px-1 py-0.5 rounded">/login</code>.
+              </p>
+            </div>
           )}
 
           {/* Members List */}
