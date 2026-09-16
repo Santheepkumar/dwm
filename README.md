@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DWM (Daily Work Management) Application
 
-## Getting Started
+An enterprise Daily Work Management web application built with **Next.js (App Router)**, **Tailwind CSS**, and **Appwrite**.
 
-First, run the development server:
+---
 
+## 🌟 Key Features
+
+1. **Daily Activity Plan (with Reminders)**: Daily action board with reminders and audio/desktop alerts.
+2. **Activity Plan vs Actual Work Done**: Comprehensive variance analysis, time utilization, and execution tracking with CSV export.
+3. **Postpone Activity with Earlier Reminders**: Postpone tasks to tomorrow or any date with advance reminder alerts and audit logs.
+4. **Processing & Top-Level Approvals**: Track works under processing with SLA countdown and top-level sign-off (MD, VP HR, CFO, Operations Director).
+5. **Weekly & Monthly Summaries with Aging Analytics**: Executive dashboard highlighting completed tasks, **Long Pending (>3 days)** items, and **Long Under Processing** items.
+6. **Schedule Upcoming Days**: 7-day rolling forward agenda board to pre-schedule future tasks.
+7. **5 Specialized HR/Operations Pipelines**: Candidate Sourcing, Reports, Statutory, Payroll, and Engagement Activities.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Appwrite Database
+Follow the step-by-step setup guide:
+👉 **[Appwrite Database Setup Guide](./APPWRITE_SETUP_GUIDE.md)**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy the example environment file:
+```bash
+cp .env.example .env.local
+```
+Edit `.env.local` with your Appwrite details:
+```env
+NEXT_PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+NEXT_PUBLIC_APPWRITE_PROJECT_ID=your_project_id_here
+NEXT_PUBLIC_APPWRITE_DATABASE_ID=dwm_database
+NEXT_PUBLIC_APPWRITE_COLLECTION_ID=activities
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+*(Note: If you run without Appwrite credentials, the app automatically runs in offline demo mode using browser local storage pre-seeded with sample activities!)*
 
-## Learn More
+### 3. Run Development Server
+```bash
+npm run dev -- -p 3001
+```
+Open [http://localhost:3001](http://localhost:3001) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Build for Production
+```bash
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📚 Documentation & Reference
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Appwrite Real Database Setup Guide](./APPWRITE_SETUP_GUIDE.md)
+- [Project Types and Models](./src/lib/types.ts)
+- [Unified Activity Service](./src/services/activityService.ts)
