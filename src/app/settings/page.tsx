@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { getAppwriteConfig } from '@/lib/appwrite';
 import { activityService } from '@/services/activityService';
+import { useAuth } from '@/context/AuthContext';
+import { useTenant } from '@/context/TenantContext';
 import { Client, Databases } from 'appwrite';
 import {
   Settings,
@@ -16,9 +19,13 @@ import {
   Code,
   ExternalLink,
   Save,
+  ShieldAlert,
 } from 'lucide-react';
 
 export default function SettingsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const { isSuperAdmin, loading: tenantLoading } = useTenant();
+
   const [endpoint, setEndpoint] = useState('');
   const [projectId, setProjectId] = useState('');
   const [databaseId, setDatabaseId] = useState('dwm_database');
@@ -156,6 +163,48 @@ export default function SettingsPage() {
     };
     reader.readAsText(file);
   };
+
+  if (authLoading || tenantLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navbar />
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSuperAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navbar />
+        <main className="mx-auto max-w-xl px-4 py-20 sm:px-6">
+          <div className="rounded-2xl border border-rose-200 bg-white p-8 text-center shadow-xl shadow-rose-100/40" data-testid="settings-access-denied">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 mb-4 shadow-sm">
+              <ShieldAlert className="h-7 w-7" />
+            </div>
+            <h1 className="text-xl font-bold text-slate-900 mb-2">Restricted Access</h1>
+            <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto mb-6 leading-relaxed">
+              Only <strong>Super Administrators</strong> are authorized to configure Appwrite backend infrastructure, provision database schemas, or modify system data.
+            </p>
+            <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 text-xs text-slate-700 font-medium mb-6 border border-slate-200">
+              <span>Current User:</span>
+              <strong className="text-slate-900 font-mono">{user?.email || 'Unauthorized'}</strong>
+            </div>
+            <div>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all cursor-pointer"
+              >
+                Return to Dashboard
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">

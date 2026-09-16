@@ -262,20 +262,37 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNewActivity }) => {
               <span>{formatDate(today)}</span>
             </div>
 
-            {/* Appwrite Status Badge */}
-            <Link
-              href="/settings"
-              title={isAppwriteConfigured ? 'Appwrite Cloud Connected' : 'Running on Local Storage (Click for Appwrite Setup)'}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50/80 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all"
-            >
-              <Database className="h-3.5 w-3.5 text-slate-500" />
-              <span className="hidden md:inline">{isAppwriteConfigured ? 'Appwrite Live' : 'Demo Mode'}</span>
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  isAppwriteConfigured ? 'bg-emerald-500' : 'bg-amber-400'
-                }`}
-              />
-            </Link>
+            {/* Appwrite Status Badge (Links to /settings for Super Admin, informational indicator for others) */}
+            {isSuperAdmin ? (
+              <Link
+                href="/settings"
+                title={isAppwriteConfigured ? 'Appwrite Cloud Connected (Click to Configure)' : 'Running on Local Storage (Click for Appwrite Setup)'}
+                className="flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50/80 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:border-slate-300 transition-all cursor-pointer"
+                data-testid="appwrite-status-badge"
+              >
+                <Database className="h-3.5 w-3.5 text-slate-500" />
+                <span className="hidden md:inline">{isAppwriteConfigured ? 'Appwrite Live' : 'Demo Mode'}</span>
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    isAppwriteConfigured ? 'bg-emerald-500' : 'bg-amber-400'
+                  }`}
+                />
+              </Link>
+            ) : (
+              <div
+                title={isAppwriteConfigured ? 'Appwrite Cloud Connected' : 'Running on Demo Data'}
+                className="flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50/80 px-2 sm:px-2.5 py-1.5 text-xs font-medium text-slate-700"
+                data-testid="appwrite-status-badge"
+              >
+                <Database className="h-3.5 w-3.5 text-slate-500" />
+                <span className="hidden md:inline">{isAppwriteConfigured ? 'Appwrite Live' : 'Demo Mode'}</span>
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    isAppwriteConfigured ? 'bg-emerald-500' : 'bg-amber-400'
+                  }`}
+                />
+              </div>
+            )}
 
             {/* Quick Action Button (Desktop & Mobile header) */}
             {onOpenNewActivity && (
@@ -289,18 +306,21 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNewActivity }) => {
               </button>
             )}
 
-            {/* Settings icon */}
-            <Link
-              href="/settings"
-              className={`rounded-lg p-2 transition-all ${
-                pathname === '/settings'
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
-              }`}
-              title="Settings & Data Management"
-            >
-              <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Link>
+            {/* Settings icon (Super Admin only) */}
+            {isSuperAdmin && (
+              <Link
+                href="/settings"
+                className={`rounded-lg p-2 transition-all ${
+                  pathname === '/settings'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                }`}
+                title="Settings & Appwrite Backend (Super Admin Only)"
+                data-testid="settings-nav-btn"
+              >
+                <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Link>
+            )}
 
             {/* User Profile & Logout */}
             {user && (
