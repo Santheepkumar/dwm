@@ -54,8 +54,14 @@ npm run build
 
 ---
 
-## 📚 Documentation & Reference
+## 📚 Documentation & Technical Specifications
 
-- [Appwrite Real Database Setup Guide](./APPWRITE_SETUP_GUIDE.md)
-- [Project Types and Models](./src/lib/types.ts)
+Detailed architecture, database designs, and business flow specifications are located in the **[`docs/`](./docs/README.md)** directory:
+
+- 🏛️ **[Architecture Document](./docs/ARCHITECTURE.md)**: System architecture, multi-tenant RBAC, Appwrite Cloud integration, and notification engine.
+- 🗄️ **[Database Model & ERD](./docs/DATABASE_MODEL.md)**: Normalized database schema (5 collections), Mermaid ERD diagram, and data dictionary.
+- 📋 **[PRD & Business Workflows](./docs/PRD_AND_BUSINESS_FLOWS.md)**: Product requirements, user personas, 5 business pipelines, and workflow diagrams.
+- 🧪 **[End-to-End Test Suites](./docs/E2E_TEST_SUITES.md)**: Coverage matrix of all 10 Playwright E2E test suites (38 tests) and execution guide.
+- ⚙️ **[Appwrite Database Setup Guide](./APPWRITE_SETUP_GUIDE.md)**: Step-by-step Appwrite cloud configuration.
+
 - [Unified Activity Service](./src/services/activityService.ts)
