@@ -13,6 +13,7 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
+    "@netlify/plugin-nextjs": "^5.16.0",
     "appwrite": "^27.0.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
