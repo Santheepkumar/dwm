@@ -185,6 +185,39 @@ The Summaries & Aging dashboard (`/analytics`) continuously aggregates and surfa
   - Instant toggle between **Weekly View** and **Monthly View**.
   - Category breakdown bars visualising completion rates per pipeline.
 
+### 4.5 Autonomous Continuous & Idle-Resilient Day Rollover Flow
+- **Purpose**: Solves the common operational issue where uncompleted activities from yesterday or past days remain stranded in past calendar views.
+- **Zero-Cron Architecture**: Self-contained entirely within the client application; requires no external server cron or worker infrastructure.
+- **Triggers**:
+  1. **Cold Start / Mount**: Runs immediately upon application load.
+  2. **Midnight Transition (`00:00:01`)**: Targets the exact microsecond the local clock rolls over into the new day.
+  3. **Idle-Tab & Wake Resilience**: Listens to `document.visibilitychange` and `window.focus` when the computer wakes from sleep or the user switches tabs after hours of inactivity.
+  4. **Heartbeat Guard**: 60-second periodic heartbeat verifies the current date vs last active date.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as Day Sentinel Hook (useDayRolloverSentinel)
+    participant Engine as Rollover Engine (activityService)
+    participant Storage as Appwrite / LocalStorage
+    participant UI as Daily Plan View (page.tsx)
+
+    Note over Client: User leaves tab open overnight / wakes laptop
+    Client->>Client: Event: Midnight Timer OR visibilitychange / focus
+    Client->>Engine: rollOverPendingActivities(today, tenantId)
+    Engine->>Storage: Query activities (status != 'completed' AND plannedDate < today)
+    loop Each Pending Activity
+        Engine->>Engine: Set carryForwardedFrom = plannedDate
+        Engine->>Engine: Increment carryForwardCount (1x, 2x...)
+        Engine->>Engine: Update plannedDate = today
+        Engine->>Storage: updateDocument('activities', id, metadata)
+        Engine->>Storage: createDocument('activity_transitions', { reason: 'Auto carry-forward' })
+    end
+    Engine-->>Client: Rollover Result (count, rolledDates)
+    Client->>UI: Dispatch 'dwm_day_rolled' + Show Dismissible Banner
+    UI-->>UI: Update selectedDate to today & render "🔄 Carry Forwarded from [Date]" badges
+```
+
 ---
 
 ## 5. Non-Functional Requirements (NFRs)
@@ -195,4 +228,4 @@ The Summaries & Aging dashboard (`/analytics`) continuously aggregates and surfa
 | **Security** | RBAC validation on all routes and privileged API routes | Super Admin gate on `/settings`, tenant scoping |
 | **Accessibility** | Semantic HTML, ARIA dialogs, touch targets ≥48px | WCAG 2.1 AA Compliance |
 | **Offline Capability** | Service Worker registration & LocalStorage fallback | App runs in Demo Mode when offline |
-| **Test Reliability** | Playwright E2E test coverage across all critical user paths | 100% passing across all 10 suites (37 tests) |
+| **Test Reliability** | Playwright E2E test coverage across all critical user paths | 100% passing across all 10 suites (39 tests) |

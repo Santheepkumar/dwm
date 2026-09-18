@@ -1,6 +1,7 @@
 import { Activity, ActivityCategory, ActivityStatus, ActivityTransition, ApprovalRequest } from '@/lib/types';
 import { INITIAL_ACTIVITIES, getSampleActivities } from '@/lib/sampleData';
 import { getAppwriteConfig, getDatabases } from '@/lib/appwrite';
+import { getTodayString } from '@/lib/utils';
 import { tenantService } from './tenantService';
 import { ID, Query } from 'appwrite';
 
@@ -444,6 +445,77 @@ export const activityService = {
       },
       `Postponed to ${newDate}. Reason: ${reason}`
     );
+  },
+
+  // Feature: Autonomous Rollover / Carry-Forward of Pending Plans to Current Day
+  async rollOverPendingActivities(
+    todayDate?: string,
+    tenantId?: string
+  ): Promise<{ rolledCount: number; rolledActivities: Activity[] }> {
+    const today = todayDate || getTodayString();
+    const activeTenantId = tenantId || tenantService.getActiveTenantId();
+
+    const all = await this.getAll(activeTenantId);
+    // Identify uncompleted activities whose plannedDate is strictly in the past (< today)
+    const pendingItems = all.filter(
+      (act) => act.status !== 'completed' && act.plannedDate < today
+    );
+
+    if (pendingItems.length === 0) {
+      return { rolledCount: 0, rolledActivities: [] };
+    }
+
+    const now = new Date().toISOString();
+    const rolledActivities: Activity[] = [];
+
+    for (const item of pendingItems) {
+      const originalDate = item.originalPlannedDate || item.plannedDate;
+      const prevPlannedDate = item.plannedDate;
+      const currentCount = (item.metadata?.carryForwardCount as number) || 0;
+      const newCount = currentCount + 1;
+
+      const updatedMetadata = {
+        ...(item.metadata || {}),
+        isCarryForwarded: true,
+        carryForwardedFrom: prevPlannedDate,
+        carryForwardCount: newCount,
+        lastRolloverAt: now,
+      };
+
+      const updates: Partial<Activity> = {
+        plannedDate: today,
+        originalPlannedDate: originalDate,
+        metadata: updatedMetadata,
+        postponeReason: `Auto-carried forward from ${prevPlannedDate}`,
+      };
+
+      const updated = await this.update(
+        item.id || item.$id || '',
+        updates,
+        `Auto-carried forward from ${prevPlannedDate} to ${today} (Pending roll-over)`
+      );
+
+      if (updated) {
+        rolledActivities.push(updated);
+      }
+    }
+
+    if (typeof window !== 'undefined' && rolledActivities.length > 0) {
+      window.dispatchEvent(
+        new CustomEvent('dwm_day_rolled', {
+          detail: {
+            today,
+            count: rolledActivities.length,
+            activities: rolledActivities,
+          },
+        })
+      );
+    }
+
+    return {
+      rolledCount: rolledActivities.length,
+      rolledActivities,
+    };
   },
 
   // Feature 2: Update actual work done vs planned

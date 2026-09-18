@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { ReminderBanner } from '@/components/ReminderBanner';
@@ -10,6 +10,7 @@ import { PostponeModal } from '@/components/PostponeModal';
 import { ActualWorkModal } from '@/components/ActualWorkModal';
 import { ApprovalWorkflowModal } from '@/components/ApprovalWorkflowModal';
 import { activityService } from '@/services/activityService';
+import { useDayRolloverSentinel } from '@/hooks/useDayRolloverSentinel';
 import { Activity, ActivityCategory, ActivityStatus } from '@/lib/types';
 import { CATEGORIES } from '@/lib/constants';
 import { getTodayString, formatDate, formatHours } from '@/lib/utils';
@@ -25,6 +26,7 @@ import {
   AlertCircle,
   Sparkles,
   RefreshCw,
+  RotateCw,
   X,
 } from 'lucide-react';
 
@@ -44,6 +46,14 @@ export default function DailyPlanPage() {
   const [approvalTarget, setApprovalTarget] = useState<Activity | null>(null);
 
   const today = getTodayString();
+
+  // Autonomous Day Sentinel: handles cold start, midnight crossing, and tab wake rollover
+  const { lastNotice, dismissNotice } = useDayRolloverSentinel(
+    useCallback((notice: { today: string; count: number; activities: Activity[] }) => {
+      setSelectedDate(notice.today);
+      loadActivities();
+    }, [])
+  );
 
   const loadActivities = async () => {
     setLoading(true);
@@ -68,11 +78,20 @@ export default function DailyPlanPage() {
       setAppwriteError(e.detail);
     };
 
+    const handleDayRolled = (e: any) => {
+      if (e.detail?.today) {
+        setSelectedDate(e.detail.today);
+      }
+      loadActivities();
+    };
+
     window.addEventListener('dwm_activities_changed', handleDataChanged);
     window.addEventListener('dwm_appwrite_error', handleAppwriteError);
+    window.addEventListener('dwm_day_rolled', handleDayRolled);
     return () => {
       window.removeEventListener('dwm_activities_changed', handleDataChanged);
       window.removeEventListener('dwm_appwrite_error', handleAppwriteError);
+      window.removeEventListener('dwm_day_rolled', handleDayRolled);
     };
   }, []);
 
@@ -212,6 +231,35 @@ export default function DailyPlanPage() {
       <Navbar onOpenNewActivity={() => setIsNewModalOpen(true)} />
 
       <main className="mx-auto max-w-7xl px-3.5 py-4 sm:px-6 sm:py-6">
+        {/* Automatic Carry-Forward Notification Banner */}
+        {lastNotice && lastNotice.count > 0 && (
+          <div
+            className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-indigo-200/90 bg-gradient-to-r from-indigo-50/90 via-purple-50/80 to-white p-3.5 sm:p-4 text-xs shadow-xs animate-in fade-in slide-in-from-top-2 duration-300"
+            data-testid="rollover-notice-banner"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
+                <RotateCw className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-bold text-indigo-950 text-xs sm:text-sm">
+                  ⚡ Auto Carry-Forward: {lastNotice.count} pending {lastNotice.count === 1 ? 'task' : 'tasks'} carried forward to today
+                </p>
+                <p className="text-[11px] text-indigo-700/80 mt-0.5">
+                  Uncompleted activities from previous days have been automatically rolled over to your active daily plan.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={dismissNotice}
+              className="rounded-lg p-1.5 text-indigo-400 hover:bg-indigo-100 hover:text-indigo-800 transition-colors cursor-pointer shrink-0"
+              aria-label="Dismiss notice"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* Feature 1: Due Reminder Alert Banner */}
         <ReminderBanner
           activities={activities}

@@ -24,11 +24,11 @@ To ensure isolation and fast execution without relying on live network latency f
 
 ---
 
-## 3. Comprehensive Test Matrix (10 Suites, 38 Tests)
+## 3. Comprehensive Test Matrix (10 Suites, 39 Tests)
 
 ```mermaid
-pie title E2E Test Distribution by Feature Area (38 Tests)
-    "Daily Planning" : 4
+pie title E2E Test Distribution by Feature Area (39 Tests)
+    "Daily Planning" : 5
     "Plan vs Actual" : 3
     "Postpone & Reschedule" : 2
     "Approvals Workflow" : 4
@@ -50,6 +50,7 @@ pie title E2E Test Distribution by Feature Area (38 Tests)
 | `should create a new planned activity with reminder configured` | Opens the Add Activity modal, fills title, category, priority, planned time, and sets an earlier reminder (15m). Verifies card renders in agenda. |
 | `should toggle activity completion and update counters` | Clicks the completion checkbox on an activity card, verifies visual strikethrough and confirms completed counter increments. |
 | `should filter activities by category tabs and search query` | Switches category tabs (HR, Reports, Compliance, etc.) and types search terms in the filter bar, asserting matching items remain visible. |
+| `should automatically carry forward uncompleted activities from yesterday to today with badge` | Seeds an uncompleted activity planned for yesterday, triggers rollover sentinel, and confirms the activity moves to today's agenda with the prominent `🔄 Carry Forwarded from [Date]` badge and state transition record. |
 
 ---
 

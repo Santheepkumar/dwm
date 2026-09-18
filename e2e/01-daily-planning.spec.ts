@@ -66,4 +66,48 @@ test.describe('Feature 1: Daily Activity Plan & Reminders', () => {
     await page.waitForTimeout(300);
     await expect(page.getByText('Monthly HR Analytics & Headcount Reconciliation Report').first()).toBeVisible();
   });
+
+  test('should automatically carry forward uncompleted activities from yesterday to today with badge', async ({ page }) => {
+    // Seed an activity planned for yesterday that was not completed
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+    await page.addInitScript((yesterdayDate) => {
+      const existing = JSON.parse(localStorage.getItem('dwm_activities_data') || '[]');
+      const pendingPastTask = {
+        id: 'act_pending_past_01',
+        tenantId: 'org_default',
+        title: 'Unfinished Strategy Deck from Yesterday',
+        description: 'Preparation of quarterly strategy presentation',
+        category: 'reports',
+        stage: 'In Progress',
+        status: 'under_processing',
+        priority: 'high',
+        plannedDate: yesterdayDate,
+        plannedHours: 2.5,
+        actualHours: 0,
+        hasReminder: true,
+        postponeCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('dwm_activities_data', JSON.stringify([pendingPastTask, ...existing]));
+    }, yesterdayStr);
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    // Verify auto rollover notification banner appears
+    await expect(page.getByTestId('rollover-notice-banner')).toBeVisible();
+    await expect(page.getByText(/Auto Carry-Forward/i)).toBeVisible();
+
+    // Verify the uncompleted activity now appears on today's board
+    const rolledCard = page.locator('.group', { hasText: 'Unfinished Strategy Deck from Yesterday' }).first();
+    await expect(rolledCard).toBeVisible();
+
+    // Verify the Carry Forwarded badge is rendered on the card
+    await expect(rolledCard.getByTestId('carry-forward-badge')).toBeVisible();
+    await expect(rolledCard.getByTestId('carry-forward-badge')).toContainText(/Carry Forwarded from/i);
+  });
 });

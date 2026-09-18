@@ -18,6 +18,7 @@ import {
   Trash2,
   Check,
   CheckSquare,
+  RotateCw,
 } from 'lucide-react';
 import { Activity } from '@/lib/types';
 import { CATEGORIES, CATEGORY_STAGES, STATUS_LABELS, PRIORITY_LABELS } from '@/lib/constants';
@@ -51,6 +52,13 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
   const longPending = isLongPending(activity);
   const longProcessing = isLongUnderProcessing(activity);
   const isCompleted = activity.status === 'completed';
+
+  const isCarryForwarded = Boolean(
+    activity.metadata?.isCarryForwarded ||
+    (activity.originalPlannedDate && activity.originalPlannedDate < activity.plannedDate)
+  );
+  const carryFromDate = activity.metadata?.carryForwardedFrom || activity.originalPlannedDate;
+  const carryCount = (activity.metadata?.carryForwardCount as number) || activity.postponeCount || 1;
 
   const renderCategoryIcon = () => {
     switch (activity.category) {
@@ -188,8 +196,25 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
       </div>
 
       {/* Warnings & Escalation Alerts */}
-      {(longPending || longProcessing || activity.approverName || activity.postponeCount > 0) && (
+      {(longPending || longProcessing || isCarryForwarded || activity.approverName || activity.postponeCount > 0) && (
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {/* Auto Carry-Forward Indicator */}
+          {isCarryForwarded && carryFromDate && (
+            <span
+              className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 border border-indigo-200"
+              title={`Auto-carried forward from ${carryFromDate}. Original plan was not completed.`}
+              data-testid="carry-forward-badge"
+            >
+              <RotateCw className="h-3 w-3 text-indigo-600" />
+              <span>Carry Forwarded from {formatDate(carryFromDate)}</span>
+              {carryCount > 1 && (
+                <span className="rounded bg-indigo-200/80 px-1 text-[10px] font-bold">
+                  {carryCount}x
+                </span>
+              )}
+            </span>
+          )}
+
           {/* Long Pending Alert */}
           {longPending && (
             <span className="inline-flex items-center gap-1 rounded-md bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-800 border border-rose-200 animate-pulse">

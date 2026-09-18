@@ -25,7 +25,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    url: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3002',
     reuseExistingServer: true,
     timeout: 120 * 1000,
   },

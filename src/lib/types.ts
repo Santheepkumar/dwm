@@ -85,6 +85,12 @@ export interface ActivityMetadata {
   budgetAllocated?: number;
   expectedParticipants?: number;
 
+  // Auto Carry-Forward Tracking
+  isCarryForwarded?: boolean;
+  carryForwardedFrom?: string;
+  carryForwardCount?: number;
+  lastRolloverAt?: string;
+
   [key: string]: any;
 }
 
